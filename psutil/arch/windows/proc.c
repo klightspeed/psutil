@@ -666,6 +666,22 @@ error:
 }
 
 
+static BOOL
+psutil_proc_running_under_wine(void) {
+    HANDLE hntdll;
+    PVOID pwine_get_version;
+
+    hntdll = GetModuleHandle("ntdll.dll");
+
+    if (!hntdll)
+        return FALSE;
+
+    pwine_get_version = (PVOID)GetProcAddress(hntdll, "wine_get_version");
+
+    return NULL != pwine_get_version;
+}
+
+
 PyObject *
 psutil_proc_open_files(PyObject *self, PyObject *args) {
     DWORD pid;
@@ -675,6 +691,9 @@ psutil_proc_open_files(PyObject *self, PyObject *args) {
 
     if (! PyArg_ParseTuple(args, _Py_PARSE_PID, &pid))
         return NULL;
+
+    if (psutil_proc_running_under_wine())
+        return PySet_New(NULL);
 
     processHandle = psutil_handle_from_pid(pid, access);
     if (processHandle == NULL)
